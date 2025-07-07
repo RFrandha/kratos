@@ -149,7 +149,7 @@ quickstart:
 .PHONY: quickstart-dev
 quickstart-dev:
 	docker build -f .docker/Dockerfile-build -t oryd/kratos:latest .
-	docker-compose -f quickstart.yml -f quickstart-standalone.yml -f quickstart-latest.yml $(QUICKSTART_OPTIONS) up --build --force-recreate
+	docker-compose -f quickstart.yml -f quickstart-postgres.yml -f quickstart-latest.yml $(QUICKSTART_OPTIONS) up --build --force-recreate
 
 authors:  # updates the AUTHORS file
 	curl https://raw.githubusercontent.com/ory/ci/master/authors/authors.sh | env PRODUCT="Ory Kratos" bash

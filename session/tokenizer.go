@@ -6,6 +6,8 @@ package session
 import (
 	"context"
 	"encoding/json"
+	log "github.com/sirupsen/logrus"
+	"strconv"
 	"time"
 
 	"github.com/dgraph-io/ristretto/v2"
@@ -115,21 +117,28 @@ func (s *Tokenizer) TokenizeSession(ctx context.Context, template string, sessio
 
 		vm.ExtCode("session", string(sessionRaw))
 		vm.ExtCode("claims", string(claimsRaw))
+		vm.ExtCode("expire", strconv.FormatInt(session.ExpiresAt.Unix(), 64))
+
+		log.Println(string(sessionRaw))
+		log.Println(string(claimsRaw))
 
 		fetcher := fetcher.NewFetcher(fetcher.WithClient(httpClient), fetcher.WithCache(s.cache, 60*time.Minute))
 		jsonnet, err := fetcher.FetchContext(ctx, mapper)
 		if err != nil {
 			return err
 		}
+		log.Println(jsonnet)
 		evaluated, err := vm.EvaluateAnonymousSnippet(tpl.ClaimsMapperURL, jsonnet.String())
 		if err != nil {
 			trace.SpanFromContext(ctx).AddEvent(events.NewJsonnetMappingFailed(
 				ctx, err, jsonnet.Bytes(), evaluated, "", "",
 			))
+			log.Println(err)
 			return errors.WithStack(herodot.ErrBadRequest.WithWrap(err).WithDebug(err.Error()).WithReasonf("Unable to execute tokenizer JsonNet."))
 		}
 
 		evaluatedClaims := gjson.Get(evaluated, "claims")
+		log.Println(evaluatedClaims)
 		if !evaluatedClaims.IsObject() {
 			trace.SpanFromContext(ctx).AddEvent(events.NewJsonnetMappingFailed(
 				ctx, err, jsonnet.Bytes(), evaluated, "", "",
